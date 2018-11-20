@@ -1,21 +1,19 @@
-import numpy as np # linear algebra
-import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
-import matplotlib.pyplot as plt # Data visulation
-import glob # For including images
-import cv2 # OpenCV
-import tensorflow as tf # Machine learning lib
-from tensorflow import keras # Tensorflow high-level api
-# Input data files are available in the "../input/" directory.
-# For example, running this (by clicking run or pressing Shift+Enter) will list the files in the input directory
+import numpy as np # Numpy -> linear algebra
+import matplotlib.pyplot as plt # Pyplot -> Data visulation
+import glob # Glob -> For including images
+import cv2 # OpenCV -> For filter in images
+from tensorflow import keras # Tensorflow -> high-level api
 
 import os
 
-print(os.listdir("./input/fruits-360"))
+directory_path = "./input/fruits-360/"
+
+print(os.listdir(directory_path))
 
 # Import training dataset
 training_fruit_img = []
 training_label = []
-for dir_path in glob.glob("./input/fruits-360/Training/*"):
+for dir_path in glob.glob(directory_path + "Training/*"):
     img_label = dir_path.split("/")[-1]
     for img_path in glob.glob(os.path.join(dir_path, "*.jpg")):
         img = cv2.imread(img_path)
@@ -25,12 +23,12 @@ for dir_path in glob.glob("./input/fruits-360/Training/*"):
         training_label.append(img_label)
 training_fruit_img = np.array(training_fruit_img)
 training_label = np.array(training_label)
-print(len(np.unique(training_label)))
+print("Training set length: ", len(np.unique(training_label)))
 
 # Import test dataset
 test_fruit_img = []
 test_label = []
-for dir_path in glob.glob("./input/fruits-360/Test/*"):
+for dir_path in glob.glob(directory_path + "Test/*"):
     img_label = dir_path.split("/")[-1]
     for img_path in glob.glob(os.path.join(dir_path, "*.jpg")):
         img = cv2.imread(img_path)
@@ -40,12 +38,12 @@ for dir_path in glob.glob("./input/fruits-360/Test/*"):
         test_label.append(img_label)
 test_fruit_img = np.array(test_fruit_img)
 test_label = np.array(test_label)
-print(len(np.unique(test_label)))
+print("Test set length: ", len(np.unique(test_label)))
 
 # Import multiple-test dataset
 test_fruits_img = []
 tests_label = []
-for img_path in glob.glob(os.path.join("./input/fruits-360/test-multiple_fruits", "*.jpg")):
+for img_path in glob.glob(os.path.join(directory_path + "test-multiple_fruits", "*.jpg")):
     img = cv2.imread(img_path)
     img = cv2.resize(img, (64, 64))
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -53,7 +51,7 @@ for img_path in glob.glob(os.path.join("./input/fruits-360/test-multiple_fruits"
     tests_label.append(img_label)
 test_fruits_img = np.array(test_fruits_img)
 tests_label = np.array(tests_label)
-print(len(np.unique(tests_label)))
+print("Multiple Test set length: ", len(np.unique(tests_label)))
 
 label_to_id = {v: k for k, v in enumerate(np.unique(training_label))}
 label_to_id_test = {v: k for k, v in enumerate(np.unique(test_label))}
@@ -61,21 +59,21 @@ id_to_label = {v: k for k, v in label_to_id.items()}
 id_to_label_test = {v: k for k, v in label_to_id_test.items()}
 training_label_id = np.array([label_to_id[i] for i in training_label])
 test_label_id = np.array([label_to_id_test[i] for i in test_label])
-print(test_label_id)
+print("Training label id: ", training_label_id)
+print("Training label id: ", test_label_id)
 
 training_fruit_img, test_fruit_img = training_fruit_img / 255.0, test_fruit_img / 255.0
-plt.imshow(training_fruit_img[0])
 
 model = keras.Sequential()
 model.add(keras.layers.Conv2D(16, (3, 3), input_shape=(64, 64, 3), padding="same", activation="relu"))
 model.add(keras.layers.MaxPooling2D(pool_size=(2, 2)))
-
+model.add(keras.layers.Dropout(0.01))
 model.add(keras.layers.Conv2D(32, (3, 3), padding="same", activation="relu"))
 model.add(keras.layers.MaxPooling2D(pool_size=(2, 2)))
-
+model.add(keras.layers.Dropout(0.01))
 model.add(keras.layers.Conv2D(32, (3, 3), padding="same", activation="relu"))
 model.add(keras.layers.MaxPooling2D(pool_size=(2, 2)))
-
+model.add(keras.layers.Dropout(0.01))
 model.add(keras.layers.Conv2D(64, (3, 3), padding="same", activation="relu"))
 model.add(keras.layers.MaxPooling2D(pool_size=(2, 2)))
 
@@ -84,20 +82,25 @@ model.add(keras.layers.Dense(256, activation="relu"))
 model.add(keras.layers.Dense(75, activation="softmax"))
 model.compile(loss="sparse_categorical_crossentropy", optimizer=keras.optimizers.Adadelta(), metrics=['accuracy'])
 tensorboard = keras.callbacks.TensorBoard(log_dir="./Graph", histogram_freq=0, write_graph=True, write_images=True)
-model.fit(training_fruit_img, training_label_id, batch_size=128, epochs=5, callbacks=[tensorboard])
+history = model.fit(training_fruit_img, training_label_id, validation_split=0.33, batch_size=128, epochs=2, callbacks=[tensorboard])
 
-loss, accuracy = model.evaluate(test_fruit_img, test_label_id)
-print("\n\nLoss:", loss)
-print("Accuracy:", accuracy)
-model.save("model.h5")
-print("label to id:", label_to_id_test)
-predictions = model.predict(test_fruits_img)
-print("predictions data: ", predictions.data)
-print("predictions: ", predictions)
+print(history.history.keys())
 
-plt.figure(figsize=(30, 30))
-for i in range(45):
-    plt.subplot(9, 5, i + 1)
-    plt.xlabel("{}".format(id_to_label[np.argmax(predictions[i])], id_to_label_test[np.argmax(predictions[i])]))
-    plt.imshow(test_fruits_img[i])
+# summarize history for accuracy
+plt.plot(history.history['acc'])
+plt.plot(history.history['val_acc'])
+plt.title('model accuracy')
+plt.ylabel('accuracy')
+plt.xlabel('epoch')
+plt.legend(['train', 'test'], loc='upper left')
+plt.show()
+
+# summarize history for loss
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('model loss')
+plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['train', 'test'], loc='upper left')
+plt.show()
 
