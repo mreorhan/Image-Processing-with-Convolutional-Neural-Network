@@ -1,8 +1,6 @@
-YZM 4213- Dönem Sonu Proje Raporu
+YZM 4213- Final Project Report
 
-# Convolutional Neural Network ile Meyve Tanımlama (Türkçe)
-
-# Image Processing(Fruits) with Convolutional Neural Network (In English)
+# Image Processing(Fruits) with Convolutional Neural Network
 
 
 1. I.Özet
