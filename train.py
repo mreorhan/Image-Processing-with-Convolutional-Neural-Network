@@ -1,14 +1,17 @@
-import numpy as np # Numpy -> linear algebra
-import matplotlib.pyplot as plt # Pyplot -> Data visulation
-import glob # Glob -> For including images
-import cv2 # OpenCV -> For filter in images
-from tensorflow import keras # Tensorflow -> high-level api
-
+#Created by @mreorhan
+import numpy as np  # Numpy -> linear algebra
+import matplotlib.pyplot as plt  # Pyplot -> Data visulation
+import glob  # Glob -> For including images
+import cv2  # OpenCV -> For filter in images
+#from tensorflow import keras  # Tensorflow -> high-level api
+from keras.models import Sequential
+from keras.layers import Conv2D, MaxPooling2D, Dropout, Flatten, Dense
+from keras.optimizers import Adadelta, Adamax
 import os
 
-directory_path = "./input/fruits-360/"
-
-print(os.listdir(directory_path))
+directory_path = "./data/fruits-360/"
+batch_size = 128
+epochs = 4
 
 # Import training dataset
 training_fruit_img = []
@@ -64,43 +67,40 @@ print("Training label id: ", test_label_id)
 
 training_fruit_img, test_fruit_img = training_fruit_img / 255.0, test_fruit_img / 255.0
 
-model = keras.Sequential()
-model.add(keras.layers.Conv2D(16, (3, 3), input_shape=(64, 64, 3), padding="same", activation="relu"))
-model.add(keras.layers.MaxPooling2D(pool_size=(2, 2)))
-model.add(keras.layers.Dropout(0.01))
-model.add(keras.layers.Conv2D(32, (3, 3), padding="same", activation="relu"))
-model.add(keras.layers.MaxPooling2D(pool_size=(2, 2)))
-model.add(keras.layers.Dropout(0.01))
-model.add(keras.layers.Conv2D(32, (3, 3), padding="same", activation="relu"))
-model.add(keras.layers.MaxPooling2D(pool_size=(2, 2)))
-model.add(keras.layers.Dropout(0.01))
-model.add(keras.layers.Conv2D(64, (3, 3), padding="same", activation="relu"))
-model.add(keras.layers.MaxPooling2D(pool_size=(2, 2)))
-
-model.add(keras.layers.Flatten())
-model.add(keras.layers.Dense(256, activation="relu"))
-model.add(keras.layers.Dense(75, activation="softmax"))
-model.compile(loss="sparse_categorical_crossentropy", optimizer=keras.optimizers.Adadelta(), metrics=['accuracy'])
-tensorboard = keras.callbacks.TensorBoard(log_dir="./Graph", histogram_freq=0, write_graph=True, write_images=True)
-history = model.fit(training_fruit_img, training_label_id, validation_split=0.33, batch_size=128, epochs=2, callbacks=[tensorboard])
+model = Sequential()
+model.add(Conv2D(16, (3, 3), input_shape=(64, 64, 3), padding="same", activation="relu"))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Dropout(0.01))
+model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Dropout(0.01))
+model.add(Conv2D(64, (3, 3), padding="same", activation="relu"))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Flatten())
+model.add(Dense(256, activation="relu"))
+model.add(Dense(128, activation="softmax"))
+model.compile(loss="sparse_categorical_crossentropy", optimizer=Adadelta(), metrics=['accuracy'])
+#tensorboard = keras.callbacks.TensorBoard(log_dir="./Graph", histogram_freq=0, write_graph=True, write_images=True)
+history = model.fit(training_fruit_img, training_label_id, validation_split=0.33, batch_size=batch_size, epochs=epochs)
+history2 = model.fit(test_fruit_img, test_label_id, validation_split=0.33, batch_size=batch_size, epochs=epochs)
 
 print(history.history.keys())
 
 # summarize history for accuracy
 plt.plot(history.history['acc'])
-plt.plot(history.history['val_acc'])
-plt.title('model accuracy')
+plt.plot(history2.history['acc'])
+plt.title('Model Accuracy')
 plt.ylabel('accuracy')
 plt.xlabel('epoch')
-plt.legend(['train', 'test'], loc='upper left')
+plt.legend(['train', 'test'], loc='upper right')
 plt.show()
 
 # summarize history for loss
 plt.plot(history.history['loss'])
-plt.plot(history.history['val_loss'])
-plt.title('model loss')
+plt.plot(history2.history['loss'])
+plt.title('Model Loss')
 plt.ylabel('loss')
 plt.xlabel('epoch')
-plt.legend(['train', 'test'], loc='upper left')
+plt.legend(['train', 'test'], loc='upper right')
 plt.show()
 
